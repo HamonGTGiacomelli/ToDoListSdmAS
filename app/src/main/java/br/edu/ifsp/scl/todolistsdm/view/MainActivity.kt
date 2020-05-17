@@ -9,10 +9,11 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import br.edu.ifsp.scl.todolistsdm.R
 import br.edu.ifsp.scl.todolistsdm.adapter.ListaTarefasAdapter
-import br.edu.ifsp.scl.todolistsdm.controller.ToDoListPresenter
 import br.edu.ifsp.scl.todolistsdm.model.entity.Tarefa
+import br.edu.ifsp.scl.todolistsdm.viewmodel.ToDoListViewModel
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.celula_lista_tarefas.view.*
 import kotlinx.android.synthetic.main.conteudo_principal.*
@@ -25,14 +26,14 @@ import splitties.alertdialog.message
 import splitties.alertdialog.okButton
 import splitties.toast.toast
 
-class MainActivity : AppCompatActivity(), ToDoListViewInterface {
+class MainActivity : AppCompatActivity() {
     object Constantes {
         const val TAREFA_ACTIVITY_REQUEST_CODE = 0
         const val TAREFA_EXTRA = "TAREFA_EXTRA"
     }
 
     private lateinit var listaTarefasAdapter: ListaTarefasAdapter
-    private lateinit var presenter: ToDoListPresenter
+    private lateinit var viewModel: ToDoListViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +61,7 @@ class MainActivity : AppCompatActivity(), ToDoListViewInterface {
             Atualizar atributo checado na fonte de dados
              */
             tarefaClicada?.let {
-                presenter.alterarTarefa(it)
+                viewModel.alterarTarefa(it)
             }
         }
 
@@ -74,14 +75,16 @@ class MainActivity : AppCompatActivity(), ToDoListViewInterface {
         }
 
         /*
-        Instanciar presenter
+        Instanciar viewModel
          */
-        presenter = ToDoListPresenter(this)
+        viewModel = ToDoListViewModel(this)
 
         /*
         Recuperar tarefas da fonte de dados e passar para o adaptador do ListView
          */
-        presenter.buscarTarefas()
+        viewModel.buscarTarefas().observe(this, Observer {
+            setTarefas(it)
+        })
     }
 
     override fun onCreateContextMenu(
@@ -112,7 +115,7 @@ class MainActivity : AppCompatActivity(), ToDoListViewInterface {
                          */
                         tarefaClicada?.let{
                             GlobalScope.launch {
-                                presenter.apagarTarefa(it)
+                                viewModel.apagarTarefa(it)
                                 runOnUiThread {
                                     listaTarefasAdapter.remove(it)
                                     toast(getString(R.string.tarefa_removida))
@@ -143,7 +146,7 @@ class MainActivity : AppCompatActivity(), ToDoListViewInterface {
                     Remover TODAS as tarefas da fonte de dados
                      */
                     GlobalScope.launch {
-                        presenter.apagarTarefas(*listaTarefasAdapter.getAll().toTypedArray())
+                        viewModel.apagarTarefas(*listaTarefasAdapter.getAll().toTypedArray())
                         runOnUiThread {
                             listaTarefasAdapter.clear()
                             toast(getString(R.string.tarefas_removidas))
@@ -183,10 +186,10 @@ class MainActivity : AppCompatActivity(), ToDoListViewInterface {
         }
     }
 
-    override fun setTarefas(listaTarefas: MutableList<Tarefa>) {
+    fun setTarefas(listaTarefas: MutableList<Tarefa>) {
         listaTarefasAdapter.clear()
         listaTarefasAdapter.addAll(listaTarefas)
     }
 
-    override fun setRetorno(tarefa: Tarefa) {}
+    fun setRetorno(tarefa: Tarefa) {}
 }

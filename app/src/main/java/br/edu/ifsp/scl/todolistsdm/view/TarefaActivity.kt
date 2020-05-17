@@ -6,16 +6,17 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import br.edu.ifsp.scl.todolistsdm.R
-import br.edu.ifsp.scl.todolistsdm.controller.ToDoListPresenter
 import br.edu.ifsp.scl.todolistsdm.model.entity.Tarefa
+import br.edu.ifsp.scl.todolistsdm.viewmodel.ToDoListViewModel
 import kotlinx.android.synthetic.main.activity_tarefa.*
 import kotlinx.android.synthetic.main.toolbar.*
 import splitties.toast.toast
 
-class TarefaActivity : AppCompatActivity(), ToDoListViewInterface {
+class TarefaActivity : AppCompatActivity() {
     private var tarefa: Tarefa? = null
-    private lateinit var presenter: ToDoListPresenter
+    private lateinit var viewModel: ToDoListViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,9 +26,9 @@ class TarefaActivity : AppCompatActivity(), ToDoListViewInterface {
         setSupportActionBar(toolbarTb)
 
         /*
-        Instanciando presenter
+        Instanciando viewModel
          */
-        presenter = ToDoListPresenter(this)
+        viewModel = ToDoListViewModel(this)
 
         /* Edição ou Nova? */
         tarefa = intent.getParcelableExtra(MainActivity.Constantes.TAREFA_EXTRA)
@@ -54,18 +55,29 @@ class TarefaActivity : AppCompatActivity(), ToDoListViewInterface {
                  */
                 if (tarefa == null) {
                     tarefa = Tarefa(nome = nomeTarefaEt.text.toString())
-                    presenter.salvarTarefa(tarefa!!)
+                    this.salvarTarefa(tarefa!!)
                 }
                 else {
-                    tarefa?.nome = nomeTarefaEt.text.toString()
-                    presenter.alterarTarefa(tarefa!!)
+                    tarefa?.let {
+                        it.nome = nomeTarefaEt.text.toString()
+                        viewModel.alterarTarefa(it)
+                        setRetorno(it)
+                    }
                 }
             }
         }
         return true
     }
 
-    override fun setRetorno(tarefa: Tarefa) {
+    private fun salvarTarefa(tarefa: Tarefa) {
+        viewModel.salvarTarefa(tarefa).observe(this, Observer { id ->
+            viewModel.buscarTarefa(id.toInt()).observe(this, Observer {
+                setRetorno(it)
+            })
+        })
+    }
+
+     fun setRetorno(tarefa: Tarefa) {
         /*
         Retorna tarefa para MainActivity
         */
@@ -79,6 +91,4 @@ class TarefaActivity : AppCompatActivity(), ToDoListViewInterface {
         }
         finish()
     }
-
-    override fun setTarefas(listaTarefas: MutableList<Tarefa>) {}
 }
